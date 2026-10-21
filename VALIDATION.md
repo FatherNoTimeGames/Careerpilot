@@ -25,3 +25,11 @@ The server was launched with `serve --worker --db .data/unattended.sqlite3 --por
 - Authentication/HTTP contract tests and JavaScript syntax checks passed. External deployment, Android browser behavior and execution after a production host restart remain unverified.
 
 Restart check: stopped the server gracefully, used SQLite online backup to retain the verified live database at the default `.data/jobs.sqlite3` path, and restarted with the documented `python3 -m careerpilot serve --worker` command. HTTP state retained all 15 listings and its one completed run; no duplicate early run occurred.
+
+## Résumé Studio checkpoint — October 21, 2026
+
+- 20 automated tests pass: all 10 discovery/HTTP tests plus 10 Studio cases covering local PDF/DOCX extraction, byte-identical original retention, image-only and malformed documents, unverified/inferred claim exclusion, date contradictions, stale updates, immutable approved versions, separate master approval, job selection without application status changes, private access and multi-page export integrity.
+- Pinned document dependencies are installed in `.venv` using the existing local packages. No paid service or AI execution path is configured.
+- A real Chromium run at 393×851 completed import → profile confirmation/verification → manual wording comparison → saved checks → rendered preview → approval → PDF download → explicit master replacement → reload persistence. No JavaScript errors or horizontal overflow. A subsequent extended check also covers unsaved wording across navigation and selecting a version for a job.
+- Inspected all three rendered pages of a synthetic multi-page PDF: readable single-column text, intact margins, no clipped or missing content. Programmatic PDF text completeness, DOCX round-trip and rendered-margin checks also passed. Original/revised mobile UI inspected.
+- Synthetic browser/test data uses isolated temporary databases. No real candidate résumé has been uploaded or revised. Scanned-PDF OCR, AI rewriting and Word-specific visual rendering remain unsupported. Production Sites hosting remains unverified.

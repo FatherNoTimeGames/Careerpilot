@@ -7,6 +7,7 @@ from .store import connect
 from .providers import load_sources
 from .discovery import discover, worker
 from .web import server
+from .security import initialize_password
 
 
 def main():
@@ -23,7 +24,8 @@ def main():
     db = connect(args.db)
     if args.command == "init":
         db.close()
-        print("Database initialized")
+        password_file = initialize_password(args.db)
+        print(f"Database initialized. Private owner password stored at {password_file}; value never logged.")
         return
     if args.command == "discover":
         try:

@@ -11,7 +11,7 @@ Group=careerpilot
 WorkingDirectory=/opt/careerpilot
 Environment=CAREERPILOT_DB=/var/lib/careerpilot/jobs.sqlite3
 EnvironmentFile=-/etc/careerpilot.env
-ExecStart=/usr/bin/python3 -m careerpilot serve --worker --host 127.0.0.1 --port 8000
+ExecStart=/opt/careerpilot/.venv/bin/python -m careerpilot serve --worker --host 127.0.0.1 --port 8000
 Restart=on-failure
 RestartSec=15
 TimeoutStopSec=310

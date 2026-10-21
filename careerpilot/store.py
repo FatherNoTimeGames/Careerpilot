@@ -20,6 +20,27 @@ def connect(path=None):
     db.execute("PRAGMA journal_mode=WAL")
     db.execute("PRAGMA foreign_keys=ON")
     db.executescript('''
+    CREATE TABLE IF NOT EXISTS resume_documents(
+      id INTEGER PRIMARY KEY, filename TEXT NOT NULL, kind TEXT NOT NULL, sha256 TEXT NOT NULL,
+      original BLOB NOT NULL, extracted_text TEXT NOT NULL, warnings TEXT NOT NULL, created_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS career_profiles(
+      id INTEGER PRIMARY KEY, facts TEXT NOT NULL, verified INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS resume_versions(
+      id INTEGER PRIMARY KEY, label TEXT NOT NULL, profile_revision INTEGER NOT NULL REFERENCES career_profiles(id),
+      job_id INTEGER REFERENCES jobs(id), source_document_id INTEGER REFERENCES resume_documents(id),
+      blocks TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'draft', edit_revision INTEGER NOT NULL DEFAULT 1,
+      review TEXT NOT NULL, created_at TEXT NOT NULL, approved_at TEXT);
+    CREATE TABLE IF NOT EXISTS resume_exports(
+      version_id INTEGER PRIMARY KEY REFERENCES resume_versions(id), edit_revision INTEGER NOT NULL,
+      pdf BLOB NOT NULL, docx BLOB NOT NULL, checks TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS resume_pages(
+      version_id INTEGER NOT NULL REFERENCES resume_versions(id), page INTEGER NOT NULL, png BLOB NOT NULL,
+      PRIMARY KEY(version_id,page));
+    CREATE TABLE IF NOT EXISTS resume_master(
+      id INTEGER PRIMARY KEY CHECK(id=1), version_id INTEGER NOT NULL REFERENCES resume_versions(id));
+    CREATE TABLE IF NOT EXISTS job_resumes(
+      job_id INTEGER PRIMARY KEY REFERENCES jobs(id), version_id INTEGER NOT NULL REFERENCES resume_versions(id),
+      selected_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS jobs(
       id INTEGER PRIMARY KEY, canonical_url TEXT UNIQUE NOT NULL,

@@ -1,13 +1,14 @@
 import base64
 import hmac
 import json
-import os
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 from .store import connect, settings, event
 from .matching import category
+from . import studio
+from .security import owner_password
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
 
@@ -34,7 +35,9 @@ def snapshot(db):
 
 
 def server(path, host="127.0.0.1", port=8000):
-    password = os.environ.get("CAREERPILOT_PASSWORD", "")
+    password = owner_password(path)
+    if password and len(password) < 16:
+        raise ValueError("Owner password must contain at least 16 characters")
     if host not in {"127.0.0.1", "::1", "localhost"} and len(password) < 16:
         raise ValueError("Non-loopback hosting requires CAREERPILOT_PASSWORD (at least 16 characters) and a TLS reverse proxy")
 
@@ -55,11 +58,13 @@ def server(path, host="127.0.0.1", port=8000):
             except (ValueError, UnicodeDecodeError):
                 return False
 
-        def respond(self, code, body, content_type="application/json"):
+        def respond(self, code, body, content_type="application/json", download=None):
             raw = json.dumps(body).encode() if content_type == "application/json" else body
             self.send_response(code)
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(raw)))
+            if download:
+                self.send_header("Content-Disposition", 'attachment; filename="' + download + '"')
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Referrer-Policy", "no-referrer")
@@ -73,6 +78,35 @@ def server(path, host="127.0.0.1", port=8000):
             if not self.authorized():
                 return self.respond(401, {"error": "Authentication required"})
             path_only = urlsplit(self.path).path
+            if path_only.startswith('/api/studio'):
+                if not password:
+                    return self.respond(403, {'error': 'Resume Studio requires owner authentication. Run initialization to create a private owner password, or configure CAREERPILOT_PASSWORD securely, then restart the server.'})
+                db = connect(path)
+                try:
+                    if path_only == '/api/studio':
+                        return self.respond(200, studio.state(db))
+                    parts = path_only.strip('/').split('/')
+                    if len(parts) == 5 and parts[:3] == ['api', 'studio', 'documents'] and parts[4] == 'original':
+                        ident = int(parts[3])
+                        row = db.execute('SELECT kind,original FROM resume_documents WHERE id=?', (ident,)).fetchone()
+                        if row:
+                            mime = 'application/pdf' if row['kind'] == 'pdf' else 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                            return self.respond(200, row['original'], mime, f'original-{ident}.' + row['kind'])
+                    if len(parts) == 5 and parts[:3] == ['api', 'studio', 'versions'] and parts[4] in {'pdf', 'docx'}:
+                        ident, kind = int(parts[3]), parts[4]
+                        row = db.execute("SELECT e.pdf,e.docx FROM resume_exports e JOIN resume_versions v ON e.version_id=v.id WHERE v.id=? AND v.status='approved' AND e.edit_revision=v.edit_revision", (ident,)).fetchone()
+                        if row:
+                            mime = 'application/pdf' if kind == 'pdf' else 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                            return self.respond(200, row[kind], mime, f'resume-v{ident}.' + kind)
+                    if len(parts) == 6 and parts[:3] == ['api', 'studio', 'versions'] and parts[4] == 'pages':
+                        row = db.execute('SELECT png FROM resume_pages WHERE version_id=? AND page=?', (int(parts[3]), int(parts[5]))).fetchone()
+                        if row:
+                            return self.respond(200, row[0], 'image/png')
+                    return self.respond(404, {'error': 'Document or approved export not found'})
+                except ValueError:
+                    return self.respond(400, {'error': 'Invalid document/version ID'})
+                finally:
+                    db.close()
             if path_only == "/api/state":
                 db = connect(path)
                 try:
@@ -81,7 +115,8 @@ def server(path, host="127.0.0.1", port=8000):
                     db.close()
             files = {"/": ("index.html", "text/html; charset=utf-8"),
                      "/app.js": ("app.js", "text/javascript; charset=utf-8"),
-                     "/style.css": ("style.css", "text/css; charset=utf-8")}
+                     "/style.css": ("style.css", "text/css; charset=utf-8"),
+                     "/studio.js": ("studio.js", "text/javascript; charset=utf-8")}
             if path_only not in files:
                 return self.respond(404, {"error": "Not found"})
             name, mime = files[path_only]
@@ -96,14 +131,22 @@ def server(path, host="127.0.0.1", port=8000):
             origin = self.headers.get("Origin")
             if origin and urlsplit(origin).netloc != self.headers.get("Host"):
                 return self.respond(403, {"error": "Origin mismatch"})
+            is_studio = self.path.startswith('/api/studio/')
+            if is_studio and not password:
+                return self.respond(403, {'error': 'Initialize the private owner password or configure CAREERPILOT_PASSWORD before using Resume Studio'})
             db = connect(path)
             try:
                 length = int(self.headers.get("Content-Length", "0"))
-                if length < 1 or length > 8192:
+                if length < 1 or length > (7 * 1024 * 1024 if self.path == '/api/studio/import' else 1024 * 1024 if is_studio else 8192):
                     raise ValueError("Invalid request size")
                 body = json.loads(self.rfile.read(length))
                 if not isinstance(body, dict):
                     raise ValueError("Object required")
+                if is_studio:
+                    action = self.path.removeprefix('/api/studio/')
+                    if action not in studio.ACTIONS:
+                        return self.respond(404, {'error': 'Unknown Studio action'})
+                    return self.respond(200, studio.ACTIONS[action](db, body))
                 if self.path == "/api/settings":
                     allowed = {"salary_target", "interval_hours", "enabled"}
                     if set(body)-allowed:
@@ -131,8 +174,10 @@ def server(path, host="127.0.0.1", port=8000):
                 else:
                     return self.respond(404, {"error": "Not found"})
                 self.respond(200, {"ok": True})
-            except (ValueError, TypeError):
-                self.respond(400, {"error": "Invalid request or unsupported action"})
+            except studio.Conflict as exc:
+                self.respond(409, {"error": str(exc)})
+            except (ValueError, TypeError) as exc:
+                self.respond(400, {"error": str(exc) if is_studio and type(exc) is ValueError else "Invalid request or unsupported action"})
             finally:
                 db.close()
 
