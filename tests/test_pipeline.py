@@ -88,7 +88,7 @@ class Pipeline(unittest.TestCase):
     def test_salary_categories_and_settings_preserve_jobs(self):
         pay = salary(fixture())
         self.assertEqual(pay['min'], 45000)
-        self.assertEqual(salary(fixture(description='Remote role. Base salary $50,000 - $60,000 plus bonus.'))['min'], 50000)
+        self.assertEqual(salary(fixture(description='Remote role. Annual base salary $50,000 - $60,000 plus bonus.'))['min'], 50000)
         self.assertEqual(category(pay, 50000), 'primary')
         self.assertEqual(category(pay, 70000), 'secondary')
         self.assertEqual(category(None, 50000), 'unknown')

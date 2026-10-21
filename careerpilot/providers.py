@@ -74,11 +74,15 @@ def source_id(source):
 def load_sources(path):
     with open(path) as f:
         sources = json.load(f)
+    if not isinstance(sources,list) or not 1<=len(sources)<=20:
+        raise ValueError("Configure 1–20 employer boards per installation")
     ids = set()
     for source in sources:
-        if source["provider"] not in {"greenhouse", "ashby"}:
+        if not isinstance(source,dict) or not isinstance(source.get("employer"),str) or not source["employer"].strip():
+            raise ValueError("Every board requires an employer name")
+        if source.get("provider") not in {"greenhouse", "ashby"}:
             raise ValueError("Unsupported provider")
-        if not re.fullmatch(r"[A-Za-z0-9_-]+", source["board"]):
+        if not isinstance(source.get("board"),str) or not re.fullmatch(r"[A-Za-z0-9_-]+", source["board"]):
             raise ValueError("Invalid board identifier")
         if source_id(source) in ids:
             raise ValueError("Duplicate source")

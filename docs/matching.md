@@ -26,7 +26,7 @@ Extraction uses conservative vocabulary and patterns. Unrecognized wording, long
 |---|---:|---|
 | Verified technical overlap | 35 | Supported recognized technical topics / all recognized posting technical topics |
 | Healthcare/teaching transfer | 10 | Fraction of detected healthcare or staff-training connections supported by confirmed professional employment |
-| Annual base pay | 20 | 1 if published minimum reaches target; 0.5 if range crosses target; 0 below; unknown if not verified |
+| Annualized base pay | 20 | 1 if published minimum reaches target; 0.5 if range crosses target; 0 below; unknown if not verified |
 | Working hours | 10 | 1 for recognized explicit hours within 7 AM–5 PM Central; 0 for recognized incompatible hours/shifts; unknown otherwise |
 | Internal employee support | 10 | 1 internal-only evidence; 0.5 mixed internal/external; 0 external-only; unknown without evidence |
 | On-call | 10 | 1 explicit no-on-call; 0 recognized required rotation; unknown if absent or conflicting |
@@ -36,7 +36,7 @@ Extraction uses conservative vocabulary and patterns. Unrecognized wording, long
 
 Unknown values earn zero points; they are not treated as neutral/positive evidence. Displayed evidence coverage is `100 × known criterion weights / all weights`, separate from the score. It is a completeness measure, not probability or independent accuracy. Nonzero coverage means a criterion could be evaluated, not that every claimed skill is possessed. Each criterion shows its evidence, weight and points. Recognized posting terms are potential requirements; a gap is “not established in confirmed facts,” not proof the candidate lacks it. The vocabulary is finite and cannot cover every job requirement.
 
-Weights are editable from 0–100 relative units, with at least one positive. They are normalized automatically; changing priorities never modifies job records, salary categories, profile facts or résumé versions. Scores use a snapshot's current target and verified facts. A high preference score cannot remove an exclusion.
+Weights are editable from 0–100 relative units, with at least one positive. They are normalized automatically; changing priorities never modifies job records, salary categories, profile facts or résumé versions. Scores use a snapshot's current target and verified facts. Pay uses the published annual interval or explicit-calendar normalization described in [compensation rules](compensation.md); an unknown annual amount earns no salary points even when an hourly rate is published. A high preference score cannot remove an exclusion.
 
 ## Ordering and feedback
 

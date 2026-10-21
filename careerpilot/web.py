@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from .store import connect, settings, event
 from .matching import category
+from .compensation import analyze
 from . import studio
 from .security import owner_password
 from . import personalization
@@ -25,11 +26,12 @@ def snapshot(db, private=True):
                            AND l.missing_count<2) AS active FROM jobs j ORDER BY j.first_seen DESC, j.id DESC'''):
         job = dict(row)
         data = json.loads(job.pop("data"))
-        job.update({"salary": data["salary"], "assessment": data["assessment"],
-                    "category": category(data["salary"], config["salary_target"])})
+        salary_details=analyze(data,match_config['work_state'] if private else '')
+        job.update({"salary":salary_details['annual'],"salary_details":salary_details,"assessment":data["assessment"],
+                    "category":category(salary_details['annual'],config["salary_target"])})
         if private:
             match=personalization.evaluate({**data,'fingerprint':job['fingerprint']},profile,candidate,match_config,config['salary_target'],verifications.get(job['id']),model)
-            job.update({'match':match,'salary':match['salary'],'category':match['category'],
+            job.update({'match':match,'salary':match['salary'],'salary_details':match['salary_details'],'category':match['category'],
                         'requirement_review_updated_at':verifications.get(job['id'],{}).get('updated_at')})
             job['assessment']={**job['assessment'],'eligibility':'excluded' if match['eligibility']=='excluded' else 'needs_review',
                                'rejected_reasons':match['rejected_reasons'],'verification_needed':match['verification_needed']}

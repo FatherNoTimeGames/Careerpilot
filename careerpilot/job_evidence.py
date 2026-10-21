@@ -119,7 +119,7 @@ def requirements(job, work_state=''):
     text, loc = job['description'], job['location']
     workplace = str(job.get('workplace_type') or '').lower()
     remote_pos = (f'Workplace type: {workplace}' if workplace=='remote' else None) or (f'Source location: {loc}' if re.search(r'\bremote\b',loc,re.I) else None) or ('Source isRemote=true' if job.get('is_remote') is True else None) or hit(r'\b(?:fully remote|100% remote|work from home)\b',text)
-    remote_neg = (f'Workplace type: {workplace}' if workplace in {'hybrid','onsite','on-site'} else None) or (f'Source location: {loc}' if re.search(r'\b(?:hybrid|on[- ]site|not remote)\b',loc,re.I) else None) or ('Source isRemote=false' if job.get('is_remote') is False else None) or hit(r'\b(?:required to (?:work|be) (?:in|from) (?:the |our )?office|must work (?:in|from) (?:the |our )?office|in[- ]office.{0,15}(?:three|3|four|4|five|5) days)\b',text)
+    remote_neg = (f'Workplace type: {workplace}' if workplace in {'hybrid','onsite','on-site'} else None) or (f'Source location: {loc}' if (re.search(r'\b(?:hybrid|on[- ]site|not remote)\b',loc,re.I) or (re.search(r'\boffice\b',loc,re.I) and not re.search(r'\bremote\b',loc,re.I))) else None) or ('Source isRemote=false' if job.get('is_remote') is False else None) or hit(r'\b(?:required to (?:work|be) (?:in|from) (?:the |our )?office|must work (?:in|from) (?:the |our )?office|in[- ]office.{0,15}(?:three|3|four|4|five|5) days)\b',text)
     # Explicit office obligations override a generic remote boolean.
     remote = claim('fail',remote_neg) if remote_neg else choice(remote_pos,None,'Fully remote status not established')
     country = str(job.get('country') or '').lower()
@@ -140,7 +140,7 @@ def requirements(job, work_state=''):
                 state = claim('pass',listed or nationwide)
     employment = str(job.get('employment_type') or '').lower()
     full_pos = f'Source employment type: {employment}' if employment in {'fulltime','full-time','full_time'} else hit(r'\bfull[- ]time\b',text)
-    nonfull = hit(r'\b(?:part[- ]time|contract(?:or)?|internship|temporary)\b',employment+' '+job['title']) or hit(r'\b(?:this role|this position|employment type|job type)\b[^.;]{0,30}\b(?:contract|part[- ]time|temporary|not (?:a )?full[- ]time)\b',text)
+    nonfull = hit(r'\b(?:part[- ]time|contract(?:or)?|internship|intern|temporary)\b',employment+' '+job['title']) or hit(r'\b(?:this role|this position|employment type|job type)\b[^.;]{0,30}\b(?:contract|part[- ]time|temporary|not (?:a )?full[- ]time)\b',text)
     full = claim('fail',nonfull) if nonfull else choice(full_pos,None,'Full-time status not established')
     benefit_text=re.sub(r'\b(?:no|without) (?:health|medical) insurance\b','',text,flags=re.I)
     benefits = choice(hit(r'\b(?:health insurance|medical insurance|medical,? dental(?:,? and vision)?|healthcare benefits)\b',benefit_text),

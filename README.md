@@ -44,7 +44,7 @@ Required outbound hosts: `boards-api.greenhouse.io`, `api.ashbyhq.com`. GitHub i
 
 ## Discovery behavior
 
-- `sources.json` contains employer boards, not sample job results. Employers can move ATS providers; source health exposes failures. Edit sources and restart the worker to change coverage. Employer coverage is a starting set, not a comprehensive search of the market.
+- `sources.json` contains 13 verified employer boards, not sample job results; one installation accepts up to 20 boards. Employers can move ATS providers; source health exposes failures. Edit sources and restart the worker to change coverage. Employer coverage is a starting set, not a comprehensive search of the market.
 - Greenhouse Job Board API: `/v1/boards/{board}/jobs?content=true&pay_transparency=true`.
 - Ashby public posting API: `/posting-api/job-board/{board}?includeCompensation=true`.
 - Requests use TLS verification, a 25-second timeout and up to three attempts for transient network/HTTP 429/5xx failures. Rate limits with long retry windows defer instead of retrying early. Failures get persisted exponential backoff (5 minutes to 24 hours), applied on subsequent scheduled runs. No CAPTCHA or authentication bypass.
@@ -52,7 +52,7 @@ Required outbound hosts: `boards-api.greenhouse.io`, `api.ashbyhq.com`. GitHub i
 - Duplicate source IDs and exact canonical posting URLs are deduplicated. Tracking query parameters are stripped, identity-bearing fields preserved. Different URLs on unrelated providers are **not fuzzily merged**, since similar titles can represent different requisitions. Cross-provider duplicate review remains a known limitation.
 - All locally relevant support titles are stored, including exclusions. Hybrid/onsite postings, explicit non-US country locations, certain travel requirements and non-full-time titles/types are excluded from the normal queue. A source `workplaceType` of Hybrid/OnSite overrides `isRemote: true` (a contradiction observed in live Ashby data).
 - Unknown facts are not treated as satisfied requirements. Review cards distinguish confirmed source location data from unresolved eligibility. US location does not establish eligibility in every state. Benefits, internal versus external support, travel, certifications and schedule still need human verification. Deterministic triage is not comprehensive natural-language verification.
-- Salary categories are computed when read, so changing the target preserves and recategorizes jobs. Explicit employer-published USD annual base ranges are extracted conservatively with evidence. Ranges crossing the threshold appear in Primary with a warning. Unclear currencies, geographic bands, bonuses and ambiguous compensation remain Unknown. No estimates are displayed. The normalization helper supports hourly pay only with explicit paid hours and paid weeks; live hourly/monthly/weekly and structured compensation extraction is not yet implemented.
+- Salary categories are computed when read, preserving records when thresholds change. [Compensation normalization](docs/compensation.md) uses typed Ashby base components, Greenhouse pay ranges with corroborated intervals, and explicit published text. Hourly/weekly/monthly rates require an explicitly paid calendar before annualization. Ambiguous periods, currencies and geographic tiers remain Unknown with their original pay evidence visible. No bonuses, overtime, guessed 40×52 schedules or exchange estimates are included.
 - [Personalized matching](docs/matching.md) adds documented weighted points, evidence coverage, qualification topics, requirement checks, adjustable priorities and resettable feedback ranking. Scores require a verified profile; unknown facts never satisfy hard filters. “Interested” and “Skip” persist; neither authorizes preparation or submission. The API rejects submitted and other unsupported status transitions.
 
 ## Milestones
@@ -65,7 +65,9 @@ Required outbound hosts: `boards-api.greenhouse.io`, `api.ashbyhq.com`. GitHub i
 
 **Prototype 2 — personalized matching implemented:** documented weighted points from confirmed professional facts, separate requirement checks, work-state preferences, explainable strengths/gaps, weighted evidence coverage, owner verification scoped to posting/profile/state, adjustable weights and bounded, resettable review-feedback ranking. Recurring gap suggestions use optional free documentation. See [matching methodology and limitations](docs/matching.md).
 
-**Remaining:** broader relevant employer coverage, stronger salary normalization and more comprehensive requirement parsing. Application-outcome learning needs real outcome tracking; full application preparation remains a later milestone. Do not invent qualifications. Distinguish professional from personal experience.
+**Source coverage and compensation implemented:** 13 verified employer boards, broader support-role discovery, structured base-pay parsing, explicit-calendar annualization, geographic-band handling, preserved source evidence and cent-accurate thresholds. See [coverage and compensation](docs/compensation.md).
+
+**Remaining:** additional permitted ATS integrations, richer semantic eligibility parsing and production hosting. Application-outcome learning needs real outcome tracking; full application preparation remains a later milestone. Do not invent qualifications. Distinguish professional from personal experience.
 
 **Later:** truthful application packages after job-specific preparation authorization; separate final-review and submission authorization; supported submission confirmation; notifications, briefings and email integration only with authorization. There is no Prepare or Submit button pretending those capabilities exist in this prototype.
 

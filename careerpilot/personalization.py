@@ -5,7 +5,8 @@ import re
 from datetime import datetime, timezone
 from collections import Counter
 from .job_evidence import GATES, SKILLS, STATES, affirmative_skill_ids, hit, preferences, requirements
-from .matching import salary, category
+from .matching import category
+from .compensation import analyze
 from .store import now, event
 from .studio import current_profile, Conflict
 
@@ -96,7 +97,8 @@ def feedback_model(db, config):
 
 
 def evaluate(job, profile, candidate, config, target, manual=None, model=None):
-    pay=salary(job)
+    salary_details=analyze(job,config['work_state'])
+    pay=salary_details['annual']
     section=category(pay,target)
     gates=requirements(job,config['work_state'])
     review_data=json.loads(manual['data']) if manual else {}
@@ -157,7 +159,7 @@ def evaluate(job, profile, candidate, config, target, manual=None, model=None):
                              'points':round(100*config['weights'][k]*(v['value'] or 0)/total,2) if score is not None else None} for k,v in dimension.items()},
             'feedback_adjustment':bonus,'feedback_evidence':learned,
             'confidence':'low' if coverage<50 or eligibility!='requirements_verified' else 'medium' if coverage<80 else 'higher evidence coverage',
-            'salary':pay,'category':section,'traits':tags,
+            'salary':pay,'salary_details':salary_details,'category':section,'traits':tags,
             'limitation':'Keyword evidence and owner checks; not a hiring probability or a complete semantic qualification review.'}
 
 

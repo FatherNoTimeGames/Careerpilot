@@ -31,7 +31,7 @@ def main():
         try:
             result = discover(db, sources)
             print(json.dumps(result, indent=2))
-            if result["status"] in {"failed", "partial"}:
+            if result["status"] in {"failed", "partial", "interrupted"}:
                 raise SystemExit(1)
         finally:
             db.close()
