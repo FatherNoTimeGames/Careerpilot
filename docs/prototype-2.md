@@ -1,6 +1,6 @@
 # Prototype 2 requirements
 
-Status: Résumé Studio is implemented with local processing and a manual revision fallback; automated AI rewriting is not enabled. See [the Studio guide](resume-studio.md) for tested capabilities and limitations. Other Prototype 2 matching features below remain planned. Preserve the working discovery pipeline while adding them in small, testable milestones.
+Status: Résumé Studio is implemented with local processing and a manual revision fallback; automated AI rewriting is not enabled. See [the Studio guide](resume-studio.md) for tested capabilities and limitations. Personalized matching with documented points, hard requirement checks, adjustable priorities, and resettable review-feedback ranking is also implemented; see [matching methodology](matching.md). Expanded source coverage, broader salary parsing and application-outcome learning remain outstanding. Preserve the working discovery pipeline while adding them in small, testable milestones.
 
 ## Résumé Studio — required before full application preparation
 

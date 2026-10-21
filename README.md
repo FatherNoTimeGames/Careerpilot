@@ -25,6 +25,7 @@ Other commands:
 .venv/bin/python -m unittest discover -s tests -v
 node --check static/app.js
 node --check static/studio.js
+node --check static/matching.js
 ```
 
 `--db /persistent/path/jobs.sqlite3` and `--sources /path/sources.json` are available on every command. Alternatively use `CAREERPILOT_DB`. Do not run multiple versions of the application against one database. A database lease prevents overlapping discovery runs in one installation. Keep the machine clock accurate.
@@ -52,7 +53,7 @@ Required outbound hosts: `boards-api.greenhouse.io`, `api.ashbyhq.com`. GitHub i
 - All locally relevant support titles are stored, including exclusions. Hybrid/onsite postings, explicit non-US country locations, certain travel requirements and non-full-time titles/types are excluded from the normal queue. A source `workplaceType` of Hybrid/OnSite overrides `isRemote: true` (a contradiction observed in live Ashby data).
 - Unknown facts are not treated as satisfied requirements. Review cards distinguish confirmed source location data from unresolved eligibility. US location does not establish eligibility in every state. Benefits, internal versus external support, travel, certifications and schedule still need human verification. Deterministic triage is not comprehensive natural-language verification.
 - Salary categories are computed when read, so changing the target preserves and recategorizes jobs. Explicit employer-published USD annual base ranges are extracted conservatively with evidence. Ranges crossing the threshold appear in Primary with a warning. Unclear currencies, geographic bands, bonuses and ambiguous compensation remain Unknown. No estimates are displayed. The normalization helper supports hourly pay only with explicit paid hours and paid weeks; live hourly/monthly/weekly and structured compensation extraction is not yet implemented.
-- There is no compatibility percentage or learned ranking yet. Jobs are shown newest first. “Interested” and “Skip” persist; neither authorizes preparation or submission. The API rejects submitted and other unsupported status transitions.
+- [Personalized matching](docs/matching.md) adds documented weighted points, evidence coverage, qualification topics, requirement checks, adjustable priorities and resettable feedback ranking. Scores require a verified profile; unknown facts never satisfy hard filters. “Interested” and “Skip” persist; neither authorizes preparation or submission. The API rejects submitted and other unsupported status transitions.
 
 ## Milestones
 
@@ -62,7 +63,9 @@ Required outbound hosts: `boards-api.greenhouse.io`, `api.ashbyhq.com`. GitHub i
 
 **Prototype 2 — Résumé Studio implemented:** private PDF/DOCX import and original retention, correctable unverified extraction, editable versioned career profile, explicit verification, manual revision comparison with deterministic checks, rendered PDF preview, approved PDF/DOCX downloads, separate master-replacement approval and job-specific version selection. AI rewriting is unavailable without an approved provider. See [the Studio guide](docs/resume-studio.md) and [Prototype 2 requirements](docs/prototype-2.md).
 
-**Next checkpoint — remaining Prototype 2 matching:** evidence-based weighted matching, benefits/schedule/certification verification, more relevant employer coverage, stronger salary normalization, configurable scoring and resettable learned preferences. Full application preparation remains a later milestone. Do not invent qualifications. Distinguish professional from personal experience.
+**Prototype 2 — personalized matching implemented:** documented weighted points from confirmed professional facts, separate requirement checks, work-state preferences, explainable strengths/gaps, weighted evidence coverage, owner verification scoped to posting/profile/state, adjustable weights and bounded, resettable review-feedback ranking. Recurring gap suggestions use optional free documentation. See [matching methodology and limitations](docs/matching.md).
+
+**Remaining:** broader relevant employer coverage, stronger salary normalization and more comprehensive requirement parsing. Application-outcome learning needs real outcome tracking; full application preparation remains a later milestone. Do not invent qualifications. Distinguish professional from personal experience.
 
 **Later:** truthful application packages after job-specific preparation authorization; separate final-review and submission authorization; supported submission confirmation; notifications, briefings and email integration only with authorization. There is no Prepare or Submit button pretending those capabilities exist in this prototype.
 

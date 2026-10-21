@@ -41,6 +41,11 @@ def connect(path=None):
     CREATE TABLE IF NOT EXISTS job_resumes(
       job_id INTEGER PRIMARY KEY REFERENCES jobs(id), version_id INTEGER NOT NULL REFERENCES resume_versions(id),
       selected_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS job_verifications(
+      job_id INTEGER PRIMARY KEY REFERENCES jobs(id),fingerprint TEXT NOT NULL,data TEXT NOT NULL,updated_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS matching_feedback(
+      job_id INTEGER PRIMARY KEY REFERENCES jobs(id),action TEXT NOT NULL,reason TEXT NOT NULL,
+      traits TEXT NOT NULL,epoch INTEGER NOT NULL,updated_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS jobs(
       id INTEGER PRIMARY KEY, canonical_url TEXT UNIQUE NOT NULL,

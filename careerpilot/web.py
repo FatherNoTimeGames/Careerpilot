@@ -9,25 +9,48 @@ from .store import connect, settings, event
 from .matching import category
 from . import studio
 from .security import owner_password
+from . import personalization
+from .job_evidence import GATES, STATES
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
 
 
-def snapshot(db):
+def snapshot(db, private=True):
     config = settings(db)
+    config.pop('matching',None)
     jobs = []
+    profile,candidate,match_config,model=personalization.context(db)
+    verifications={row['job_id']:dict(row) for row in db.execute('SELECT * FROM job_verifications')}
     for row in db.execute('''SELECT j.*, EXISTS(SELECT 1 FROM listings l WHERE l.job_id=j.id
                            AND l.missing_count<2) AS active FROM jobs j ORDER BY j.first_seen DESC, j.id DESC'''):
         job = dict(row)
         data = json.loads(job.pop("data"))
         job.update({"salary": data["salary"], "assessment": data["assessment"],
                     "category": category(data["salary"], config["salary_target"])})
-        job.pop("fingerprint")
+        if private:
+            match=personalization.evaluate({**data,'fingerprint':job['fingerprint']},profile,candidate,match_config,config['salary_target'],verifications.get(job['id']),model)
+            job.update({'match':match,'salary':match['salary'],'category':match['category'],
+                        'requirement_review_updated_at':verifications.get(job['id'],{}).get('updated_at')})
+            job['assessment']={**job['assessment'],'eligibility':'excluded' if match['eligibility']=='excluded' else 'needs_review',
+                               'rejected_reasons':match['rejected_reasons'],'verification_needed':match['verification_needed']}
+        else:
+            job.pop('fingerprint')
         jobs.append(job)
+    if private:
+        jobs.sort(key=lambda j: ({'primary':0,'secondary':1,'unknown':2}[j['category']],
+                                {'requirements_verified':0,'needs_verification':1,'excluded':2}[j['match']['eligibility']],
+                                -(j['match']['score']+j['match']['feedback_adjustment']) if j['match']['score'] is not None else 0,
+                                -j['id']))
     health = db.execute("SELECT * FROM worker_health WHERE id=1").fetchone()
     lease = db.execute("SELECT until FROM lease WHERE id=1").fetchone()
     worker_active = bool(health and (health["heartbeat"] > time.time()-90 or (lease and lease[0] > time.time())))
     return {"jobs": jobs, "settings": config,
+            "matching":{'available':private,'config':match_config if private else None,
+                        'profile_verified':profile['verified'] if private else False,
+                        'profile_revision':profile['revision'] if private else None,
+                        'feedback':model if private else None,'gates':GATES,'states':STATES,
+                        'dimensions':personalization.DIMENSIONS,
+                        'skill_gaps':personalization.gap_summary(jobs,profile['verified']) if private else []},
             "worker": {"active": worker_active, "error": health["error"] if health else None},
             "sources": [dict(r) for r in db.execute("SELECT * FROM sources ORDER BY id")],
             "runs": [dict(r) for r in db.execute("SELECT * FROM runs ORDER BY id DESC LIMIT 20")],
@@ -110,13 +133,14 @@ def server(path, host="127.0.0.1", port=8000):
             if path_only == "/api/state":
                 db = connect(path)
                 try:
-                    return self.respond(200, snapshot(db))
+                    return self.respond(200, snapshot(db,private=bool(password)))
                 finally:
                     db.close()
             files = {"/": ("index.html", "text/html; charset=utf-8"),
                      "/app.js": ("app.js", "text/javascript; charset=utf-8"),
                      "/style.css": ("style.css", "text/css; charset=utf-8"),
-                     "/studio.js": ("studio.js", "text/javascript; charset=utf-8")}
+                     "/studio.js": ("studio.js", "text/javascript; charset=utf-8"),
+                     "/matching.js": ("matching.js", "text/javascript; charset=utf-8")}
             if path_only not in files:
                 return self.respond(404, {"error": "Not found"})
             name, mime = files[path_only]
@@ -131,17 +155,26 @@ def server(path, host="127.0.0.1", port=8000):
             origin = self.headers.get("Origin")
             if origin and urlsplit(origin).netloc != self.headers.get("Host"):
                 return self.respond(403, {"error": "Origin mismatch"})
+            is_matching=self.path.startswith('/api/matching/')
+            if is_matching and not password:
+                return self.respond(403,{'error':'Owner authentication required for private matching'})
             is_studio = self.path.startswith('/api/studio/')
             if is_studio and not password:
                 return self.respond(403, {'error': 'Initialize the private owner password or configure CAREERPILOT_PASSWORD before using Resume Studio'})
             db = connect(path)
             try:
                 length = int(self.headers.get("Content-Length", "0"))
-                if length < 1 or length > (7 * 1024 * 1024 if self.path == '/api/studio/import' else 1024 * 1024 if is_studio else 8192):
+                if length < 1 or length > (7 * 1024 * 1024 if self.path == '/api/studio/import' else 1024 * 1024 if is_studio else 32768 if is_matching else 8192):
                     raise ValueError("Invalid request size")
                 body = json.loads(self.rfile.read(length))
                 if not isinstance(body, dict):
                     raise ValueError("Object required")
+                if is_matching:
+                    if self.path=='/api/matching/settings':
+                        return self.respond(200,personalization.save_configuration(db,body))
+                    if self.path=='/api/matching/verify':
+                        return self.respond(200,personalization.verify_job(db,body))
+                    return self.respond(404,{'error':'Unknown matching action'})
                 if is_studio:
                     action = self.path.removeprefix('/api/studio/')
                     if action not in studio.ACTIONS:
@@ -170,6 +203,8 @@ def server(path, host="127.0.0.1", port=8000):
                         cursor = db.execute("UPDATE jobs SET review_status=? WHERE id=?", (body["status"], body.get("id")))
                         if cursor.rowcount != 1:
                             raise ValueError("Job not found")
+                        if password:
+                            personalization.record_feedback(db,body['id'],body['status'],body.get('reason','unspecified'))
                         event(db, body["status"], body["id"])
                 else:
                     return self.respond(404, {"error": "Not found"})
@@ -177,7 +212,7 @@ def server(path, host="127.0.0.1", port=8000):
             except studio.Conflict as exc:
                 self.respond(409, {"error": str(exc)})
             except (ValueError, TypeError) as exc:
-                self.respond(400, {"error": str(exc) if is_studio and type(exc) is ValueError else "Invalid request or unsupported action"})
+                self.respond(400, {"error": str(exc) if (is_studio or is_matching) and type(exc) is ValueError else "Invalid request or unsupported action"})
             finally:
                 db.close()
 
