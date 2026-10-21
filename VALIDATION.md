@@ -49,3 +49,7 @@ Restart check: stopped the server gracefully, used SQLite online backup to retai
 - Published base ranges without an explicit period now stay Salary Unknown rather than assuming a year; actual hourly/other rates remain visible. No paid AI/API service, application authorization, résumé upload or candidate verification was introduced. Production hosting and full semantic eligibility verification remain unverified.
 - Final compensation, matching and Résumé Studio Chromium mobile flows all passed with no JavaScript errors or horizontal overflow. Pay UI checks include $42,000–$50,400 from an explicit paid calendar, $30–$35/hour retained without an invented annual amount, and $49,999.60 staying below $50,000. Inspected the rendered pay-evidence card.
 - A repeat live retrieval added zero duplicate jobs. The current authenticated server confirms 13 healthy sources, 20 saved public listings, Texas retained, and no personalized scores while the six owner-profile facts remain pending. All 43 automated tests passed; the extra legacy-fingerprint assertion also passed in the targeted compensation suite.
+
+## Recovery tooling
+
+45 automated tests pass, including live-WAL snapshot/recovery of original document bytes and profile records, mode 0600, refusal to overwrite, missing/invalid database handling and broken-reference rejection. Backup verification does not run migrations or initialize databases. No production host, encrypted backup target or host backup schedule is claimed.

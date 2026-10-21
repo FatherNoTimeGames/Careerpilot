@@ -38,7 +38,7 @@ A persistent Linux server is a supported deployment target. `deploy/careerpilot.
 
 Use the generated private owner password or set a strong `CAREERPILOT_PASSWORD` (16+ characters) in the host's secret manager or protected environment file. HTTP Basic username: `careerpilot`. This protects **all** UI and API routes when set. Loopback access without any initialized password is only available for the discovery UI; all Résumé Studio routes refuse access until owner authentication is configured. Non-loopback binding refuses to start without a long password. Application Basic authentication is only safe externally with HTTPS. No external credentials are stored. There is no multi-user isolation or account recovery yet.
 
-SQLite lives in ignored `.data/` by default, with directory mode 0700 and database mode 0600 when created by the application. Use host disk encryption and encrypted backups for production; SQLite is not encrypted by this app. Back up using SQLite's online backup API while the service runs, or stop the service before copying its database. Never commit databases, environment files or candidate documents. Original candidate documents, extracted text, profile revisions, résumé versions and generated exports are stored privately in this SQLite database. The owner-password file is separate; protect and back it up with the database. See [Résumé Studio](docs/resume-studio.md) for workflow details and limitations.
+SQLite lives in ignored `.data/` by default, with directory mode 0700 and database mode 0600 when created by the application. Use host disk encryption and encrypted backups for production; SQLite is not encrypted by this app. Use the tested `backup` and `verify-backup` commands for consistent live snapshots; see [backup and recovery](docs/recovery.md). Never commit databases, environment files or candidate documents. Original candidate documents, extracted text, profile revisions, résumé versions and generated exports are stored privately in this SQLite database. The owner-password file is separate; protect and back it up with the database. See [Résumé Studio](docs/resume-studio.md) for workflow details and limitations.
 
 Required outbound hosts: `boards-api.greenhouse.io`, `api.ashbyhq.com`. GitHub is needed only for repository operations. Public board reads need no credentials. Source URLs are constructed from validated board slugs; no arbitrary URL fetch or employer form automation is implemented.
 
@@ -56,6 +56,9 @@ Required outbound hosts: `boards-api.greenhouse.io`, `api.ashbyhq.com`. GitHub i
 - [Personalized matching](docs/matching.md) adds documented weighted points, evidence coverage, qualification topics, requirement checks, adjustable priorities and resettable feedback ranking. Scores require a verified profile; unknown facts never satisfy hard filters. “Interested” and “Skip” persist; neither authorizes preparation or submission. The API rejects submitted and other unsupported status transitions.
 
 ## Milestones
+
+**Recovery tooling implemented:** consistent online backups, private snapshot permissions, integrity/reference checks, no-overwrite publication and a documented recovery drill. Encryption, retention and off-host storage depend on the production host.
+
 
 **Prototype 1 implemented:** public Greenhouse/Ashby adapters, persisted discovery, server-side scheduling, source-health/error logs, updates/removal tracking, conservative remote/salary triage, mobile dashboard, salary sections, review bookmarks, configurable thresholds/interval/pause, private access controls and tests.
 
