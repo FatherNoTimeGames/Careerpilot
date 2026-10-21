@@ -55,7 +55,7 @@ Required outbound hosts: `boards-api.greenhouse.io`, `api.ashbyhq.com`. GitHub i
 
 **Remaining before production:** choose/verify a persistent host (Sites capability unknown), activate service supervision and encrypted backups, verify externally private HTTPS access, then verify unattended operation across host restarts. Cloud environment instruction drafts do not deploy an app.
 
-**Next checkpoint — Prototype 2:** editable candidate profile, evidence-based weighted matching, benefits/schedule/certification verification, more relevant employer coverage, stronger salary normalization and configurable scoring. Do not invent qualifications. Distinguish professional from personal experience.
+**Next checkpoint — Prototype 2:** [Résumé Studio and a verified master career profile](docs/prototype-2.md), evidence-based weighted matching, benefits/schedule/certification verification, more relevant employer coverage, stronger salary normalization and configurable scoring. Résumé Studio must be implemented before full application preparation. Do not invent qualifications. Distinguish professional from personal experience.
 
 **Later:** truthful application packages after job-specific preparation authorization; separate final-review and submission authorization; supported submission confirmation; notifications, briefings and email integration only with authorization. There is no Prepare or Submit button pretending those capabilities exist in this prototype.
 
