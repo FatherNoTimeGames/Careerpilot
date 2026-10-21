@@ -1,0 +1,37 @@
+[
+  {
+    "provider": "greenhouse",
+    "board": "affirm",
+    "employer": "Affirm"
+  },
+  {
+    "provider": "greenhouse",
+    "board": "gitlab",
+    "employer": "GitLab"
+  },
+  {
+    "provider": "greenhouse",
+    "board": "elastic",
+    "employer": "Elastic"
+  },
+  {
+    "provider": "greenhouse",
+    "board": "doximity",
+    "employer": "Doximity"
+  },
+  {
+    "provider": "ashby",
+    "board": "ramp",
+    "employer": "Ramp"
+  },
+  {
+    "provider": "ashby",
+    "board": "notion",
+    "employer": "Notion"
+  },
+  {
+    "provider": "ashby",
+    "board": "vanta",
+    "employer": "Vanta"
+  }
+]

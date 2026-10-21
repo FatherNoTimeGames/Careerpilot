@@ -1,0 +1,26 @@
+# Example for a persistent Linux host, not installed by Codex.
+[Unit]
+Description=CareerPilot private job discovery
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=careerpilot
+Group=careerpilot
+WorkingDirectory=/opt/careerpilot
+Environment=CAREERPILOT_DB=/var/lib/careerpilot/jobs.sqlite3
+EnvironmentFile=-/etc/careerpilot.env
+ExecStart=/usr/bin/python3 -m careerpilot serve --worker --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=15
+TimeoutStopSec=310
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/careerpilot
+
+[Install]
+WantedBy=multi-user.target
